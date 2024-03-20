@@ -10,3 +10,4 @@ tensorflow
 umap-learn
 trimap
 pacmap
+keras
