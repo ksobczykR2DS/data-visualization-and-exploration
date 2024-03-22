@@ -7,7 +7,7 @@ jupyter
 notebook
 numba
 tensorflow
-umap
+umap-learn
 trimap
 pacmap
 keras
