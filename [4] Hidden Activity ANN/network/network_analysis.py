@@ -1,6 +1,6 @@
 from os.path import exists
 from typing import Optional, Tuple
-import numpy as np
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import seaborn as sns
@@ -8,7 +8,7 @@ from datashader.bundling import hammer_bundle
 from sklearn.manifold import TSNE
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
-from keras import backend as K
+from tensorflow.keras import backend as K
 
 from constants import TSNE_PATH_PREFIX
 from data_loader import *
@@ -220,7 +220,6 @@ def show_seq_projections(datatype, model_name, n_layer, epoch, size):
 
     # TODO:
     # Call `show_tsne` to obtain points_transformed, targets
-    points_transformed, targets = show_tsne(model_name, n_layer, X_train, X_test, Y_predicted=None)
 
     return points_transformed, targets
 
