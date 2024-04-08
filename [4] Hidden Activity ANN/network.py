@@ -1,16 +1,15 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, Flatten
-from tensorflow.keras.optimizers import SGD
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-from tensorflow.keras.models import load_model
-from tensorflow.keras.callbacks import ModelCheckpoint
-from network.constants import DataType
-from network.constants import MODEL_PATH_PREFIX
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten
+from keras.optimizers import SGD
+from keras.layers import Conv2D, MaxPooling2D
+from keras.models import load_model
+from keras.callbacks import ModelCheckpoint
+from constants import DataType
+from constants import MODEL_PATH_PREFIX
 import numpy as np
 from sklearn.manifold import MDS
-from sklearn.ensemble import ExtraTreesClassifier
 import os
 
 
@@ -80,9 +79,8 @@ def load_model_from_file(model_name, epochs):
 
 
 def train_model(model, batch_size, epochs, model_name, X_train, Y_train):
-    weights_path = (
-        MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_{epoch:2d}.hdf5"
-    )
+    weights_path = MODEL_PATH_PREFIX + model_name + "_" + str(epochs) + "_{epoch:02d}.weights.h5"
+
     checkpoint = ModelCheckpoint(
         weights_path,
         monitor="val_accuracy",
@@ -130,18 +128,10 @@ def predict_classes(model, X):
 
 
 def load_weights_from_file(model, model_name, epochs, epoch):
-    model.load_weights(
-        MODEL_PATH_PREFIX
-        + model_name
-        + "/"
-        + "model_"
-        + model_name
-        + "_"
-        + str(epochs)
-        + "_"
-        + str(epoch)
-        + ".hdf5"
-    )
+    weights_filename = f"model_{model_name}_{epochs}_{epoch}.hdf5"
+    weights_path = os.path.join(MODEL_PATH_PREFIX, model_name, weights_filename)
+    print(f"Trying to load weights from: {weights_path}")  # Debug line
+    model.load_weights(weights_path)
 
 
 def create_neuron_projection(layer):

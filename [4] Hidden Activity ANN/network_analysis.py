@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import seaborn as sns
 from datashader.bundling import hammer_bundle
+from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.manifold import TSNE
-from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
-from tensorflow.keras import backend as K
+import keras
 
 from constants import TSNE_PATH_PREFIX
 from data_loader import *
@@ -34,7 +34,7 @@ def plot_history(network_history):
 
 def get_activations_mlp(model, data, size):
     layer_indices = [0, 2, 4, 6]
-    layer_output = K.function(
+    layer_output = keras.Function(
         [model.layers[0].input], [model.layers[i].output for i in layer_indices]
     )
     return layer_output([data[:size, :]])
@@ -42,7 +42,7 @@ def get_activations_mlp(model, data, size):
 
 def get_activations_cnn(model, data, size=None):
     layer_indices = [9, 10]
-    layer_output = K.function(
+    layer_output = keras.Function(
         [model.layers[0].input], [model.layers[i].output for i in layer_indices]
     )
     return layer_output([data[:size, :]])
@@ -58,17 +58,21 @@ def show_tsne(
 ) -> Tuple[np.ndarray, np.ndarray]:
     scaler = StandardScaler()
     data = scaler.fit_transform(X)
-    targets = np.argmax(Y, axis=1)
 
+    targets = np.argmax(Y, axis=1)[:X.shape[0]]
     file_path = f"{TSNE_PATH_PREFIX}{model_name}_{epochs}.npy"
 
     if init is not None:
         tsne = TSNE(n_components=2, perplexity=30, init=init, random_state=0)
     else:
         tsne = TSNE(n_components=2, perplexity=30, random_state=0)
-    points_transformed = tsne.fit_transform(data).T
-    points_transformed = np.swapaxes(points_transformed, 0, 1)
+
+    points_transformed = tsne.fit_transform(data)
     np.save(file_path, points_transformed)
+    assert points_transformed.shape[0] == targets.shape[0], "The length of points_transformed and targets must match"
+
+    if Y_predicted is not None:
+        Y_predicted = Y_predicted[:X.shape[0]]
 
     show_scatterplot(points_transformed, targets, Y_predicted)
 
@@ -79,6 +83,8 @@ def show_scatterplot(points_transformed, targets, Y_predicted=None):
     palette = sns.color_palette("bright", 10)
     fig, ax = plt.subplots(figsize=(10, 10))
     if Y_predicted is None:
+        print(len(points_transformed[:, 0]), len(points_transformed[:, 1]))
+
         sns.scatterplot(
             x=points_transformed[:, 0],
             y=points_transformed[:, 1],
@@ -99,6 +105,7 @@ def show_scatterplot(points_transformed, targets, Y_predicted=None):
             palette=palette,
             ax=ax,
         )
+
     plt.show()
 
 
@@ -146,9 +153,11 @@ def compare_projections(datatype, model_name, n_layer, label, size=2000):
     label_test = np.argmax(Y_test[:size], axis=1) == label
 
     # TODO
-    # Generate hues as mentioned in the article -> section 6.1
-    # Use parameters layer_bt, layer_at and label_test
-    # Finally, use plot_new_neuron_projection function
+    bt_etc = ExtraTreesClassifier().fit(layer_bt, label_test)
+    at_etc = ExtraTreesClassifier().fit(layer_at, label_test)
+
+    plot_new_neuron_projection(x_bt, hue=bt_etc.feature_importances_)
+    plot_new_neuron_projection(x_at, hue=at_etc.feature_importances_)
 
 
 def plot_discriminative_map(activations, Y_test, size):
@@ -212,15 +221,17 @@ def show_seq_projections(datatype, model_name, n_layer, epoch, size):
         X_train, Y_train, X_test, Y_test = load_data_cnn(datatype)
         model_at = create_cnn(datatype)
         load_weights_from_file(model_at, model_name, 100, epoch)
-        layer_at = get_activations_cnn(model_at, X_test, size)[n_layer - 1]
+        activations = get_activations_cnn(model_at, X_test, size)
+        if n_layer - 1 >= len(activations):
+            raise ValueError(f"Layer index {n_layer - 1} out of range. Available layers: {len(activations)}")
+
+        layer_at = activations[n_layer - 1]
 
     file_path = TSNE_PATH_PREFIX + model_name + "_" + str(epoch) + ".npy"
     if os.path.exists(file_path):
         init = np.load(file_path)
-
     # TODO:
-    # Call `show_tsne` to obtain points_transformed, targets
-
+    points_transformed, targets = show_tsne(model_name, epoch, layer_at, Y_test[:size], init=init)
     return points_transformed, targets
 
 

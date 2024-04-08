@@ -1,8 +1,8 @@
 import numpy as np
-from tensorflow.keras.datasets import mnist, cifar10
-from tensorflow.keras.utils import to_categorical
+from keras.datasets import mnist, cifar10
+from keras.utils import to_categorical
 import scipy.io as sio
-from network.constants import DataType
+from constants import DataType
 
 
 def load_data_mlp(dataType):
